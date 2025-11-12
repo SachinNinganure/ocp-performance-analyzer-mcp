@@ -1,16 +1,10 @@
 # EgressIP Performance Analyzer Configuration
-
-# Server Configuration
-server:
-  name: "EgressIP Performance Analyzer"
-  version: "1.0.0"
-  log_level: "INFO"
-  max_concurrent_operations: 10
+# Following the repository's configuration patterns
 
 # Test Configuration
 test_config:
   # CORENET-6498 Test Defaults
-  corenet_6498:
+  cornet_6498:
     default_eip_objects: 10
     default_pods_per_eip: 200
     default_iterations: 20
@@ -68,7 +62,7 @@ ovn_analysis:
 metrics:
   # Database Settings
   database:
-    path: "./metrics/egressip_metrics.db"
+    path: "./storage/egress_metrics.db"
     backup_enabled: true
     backup_interval_hours: 24
     retention_days: 30
@@ -89,7 +83,7 @@ metrics:
 performance_thresholds:
   # Test Execution Times
   test_execution:
-    corenet_6498_max_hours: 6
+    cornet_6498_max_hours: 6
     scenario_max_minutes: 60
     node_reboot_max_minutes: 10
     
@@ -166,7 +160,7 @@ reporting:
     
   # Storage
   storage:
-    reports_directory: "./reports"
+    reports_directory: "./analysis/egress/reports"
     retain_reports_days: 30
     compress_old_reports: true
 
@@ -181,24 +175,6 @@ security:
   access_control:
     require_cluster_admin: false
     allowed_namespaces: []  # Empty means all namespaces
-    
-# Monitoring and Alerting
-monitoring:
-  # Health Checks
-  health_checks:
-    enabled: true
-    interval_seconds: 60
-    cluster_connectivity_check: true
-    database_connectivity_check: true
-    
-  # Alerts
-  alerts:
-    enabled: false  # Would integrate with external alerting systems
-    webhook_url: ""
-    alert_conditions:
-      - "test_failure_rate > 0.5"
-      - "rule_consistency_score < 0.5"
-      - "cluster_resources_low"
 
 # Feature Flags
 feature_flags:
@@ -208,11 +184,3 @@ feature_flags:
   enable_trend_analysis: true
   enable_automated_cleanup: true
   enable_experimental_features: false
-
-# Development and Debug Settings
-development:
-  debug_mode: false
-  verbose_logging: false
-  enable_profiling: false
-  dry_run_mode: false
-  mock_cluster_operations: false

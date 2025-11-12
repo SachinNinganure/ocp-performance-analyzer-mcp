@@ -1,392 +1,210 @@
 # EgressIP Performance Analyzer MCP Server
 
-A comprehensive AI-powered performance analysis and testing platform for OpenShift EgressIP functionality, built on the Model Context Protocol (MCP) framework.
+A comprehensive AI-powered performance analysis and testing platform for OpenShift EgressIP functionality, following the established OCP Performance Analyzer MCP repository structure.
 
 ## Overview
 
 The EgressIP Performance Analyzer provides advanced testing, monitoring, and analysis capabilities for OpenShift EgressIP implementations. It integrates large-scale performance testing (like CORENET-6498) with continuous monitoring and AI-powered bottleneck detection.
 
+## Repository Structure
+
+Following the established patterns in the OCP Performance Analyzer MCP repository:
+
+```
+├── analysis/egress/                          # Performance analysis modules
+│   └── egress_analyzer_performance_deepdrive.py
+├── config/                                   # Configuration files  
+│   └── config-egress.yml                     # EgressIP analyzer configuration
+├── elt/egress/                              # Extract-Load-Transform processing
+│   └── egress_analyzer_elt_processor.py
+├── mcp/egress/                              # MCP server implementation
+│   └── egress_analyzer_mcp_server.py
+├── tools/egressip/                          # Data collection tools
+│   ├── corenet_6498_runner.py               # CORNET-6498 test integration
+│   ├── ovn_rule_analyzer.py                 # OVN rule analysis
+│   └── metrics_collector.py                 # Metrics collection
+└── storage/                                 # Data storage (auto-created)
+    └── egress_*.db                          # SQLite databases
+```
+
 ## Features
 
 ### 🚀 **Large-Scale Performance Testing**
 - **CORENET-6498 Integration**: Execute large-scale EgressIP stress tests with 2000+ pods
-- **Multi-Scenario Testing**: Node reboots, OVN pod restarts, scaling operations
+- **Multi-Scenario Testing**: Node reboots, OVN pod restarts, scaling operations under load
 - **IPv4/IPv6 Support**: Comprehensive dual-stack testing capabilities
-- **Automated Validation**: SNAT/LRP rule consistency verification
+- **Automated Validation**: SNAT/LRP rule consistency verification across test scenarios
 
 ### 🔍 **Advanced OVN Analysis**
-- **Rule Validation**: Comprehensive SNAT and LRP rule analysis
-- **Consistency Checking**: Cross-node rule consistency validation
-- **Real-time Monitoring**: Continuous rule change detection
-- **Performance Correlation**: Link OVN rules to performance metrics
+- **Real-time Rule Validation**: Live SNAT and LRP rule consistency checking
+- **Cross-node Comparison**: Multi-node rule consistency validation
+- **Rule Change Monitoring**: Continuous monitoring for rule instability detection
+- **Performance Correlation**: Direct correlation between OVN rules and performance metrics
 
-### 📊 **Metrics Collection & Analysis**
-- **Time-Series Storage**: Long-term metrics storage with SQLite backend
-- **Trend Analysis**: Automated trend detection and forecasting
-- **Performance Tracking**: EgressIP and cluster-wide performance metrics
-- **Custom Dashboards**: Integration-ready metrics export
+### 📊 **ELT Data Processing**
+- **Extract**: Raw data extraction from tests and metrics
+- **Transform**: Structured data transformation for analysis
+- **Load**: Persistent storage with SQLite backend
+- **Historical Analysis**: Long-term performance pattern identification
 
-### 🤖 **AI-Powered Insights**
-- **Natural Language Queries**: Ask questions about EgressIP performance
+### 🤖 **AI-Powered Analysis**
+- **Natural Language Interface**: Query EgressIP performance using natural language
 - **Automated Recommendations**: AI-generated optimization suggestions
-- **Bottleneck Detection**: Intelligent performance issue identification
-- **Predictive Analysis**: Trend-based performance predictions
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     AI Agent Layer                          │
-│  (LangGraph-powered agents for intelligent analysis)        │
-└─────────────────────┬───────────────────────────────────────┘
-                      │
-┌─────────────────────┴───────────────────────────────────────┐
-│                  MCP Server Layer                           │
-│  ┌─────────────────┐ ┌─────────────────┐ ┌───────────────┐  │
-│  │  Test Runner    │ │  OVN Analyzer   │ │ Metrics       │  │
-│  │  Tools          │ │  Tools          │ │ Collector     │  │
-│  └─────────────────┘ └─────────────────┘ └───────────────┘  │
-└─────────────────────┬───────────────────────────────────────┘
-                      │
-┌─────────────────────┴───────────────────────────────────────┐
-│                 Tools/Collectors Layer                      │
-│  ┌─────────────────┐ ┌─────────────────┐ ┌───────────────┐  │
-│  │ CORENET-6498    │ │ OVN Rule        │ │ Performance   │  │
-│  │ Test Runner     │ │ Analyzer        │ │ Metrics DB    │  │
-│  └─────────────────┘ └─────────────────┘ └───────────────┘  │
-└─────────────────────┬───────────────────────────────────────┘
-                      │
-┌─────────────────────┴───────────────────────────────────────┐
-│                Infrastructure Layer                         │
-│        OpenShift/Kubernetes Cluster + OVN-Kubernetes       │
-└─────────────────────────────────────────────────────────────┘
-```
-
-## Quick Start
-
-### Prerequisites
-
-- OpenShift cluster with OVN-Kubernetes networking
-- Python 3.8+
-- Go 1.19+ (for test execution)
-- Ginkgo test framework
-- `oc` CLI tool configured
-
-### Installation
-
-1. **Clone the repository**:
-   ```bash
-   git clone <repository-url>
-   cd ocp-performance-analyzer-mcp/mcp/egress
-   ```
-
-2. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Configure the server**:
-   ```bash
-   cp config/egress_config.yaml config/local_config.yaml
-   # Edit local_config.yaml as needed
-   ```
-
-4. **Initialize the database**:
-   ```bash
-   python tools/metrics_collector.py
-   ```
-
-### Running the MCP Server
-
-```bash
-# Start the server
-python egress_analyzer_mcp_server.py
-
-# The server will listen on stdio for MCP protocol messages
-```
-
-### Using with AI Agents
-
-The server provides MCP tools that can be used by AI agents (Claude, etc.) for natural language interaction:
-
-```python
-# Example: Ask AI agent to run a performance test
-"Run a CORENET-6498 test with 5 EgressIP objects and 100 pods each"
-
-# Example: Analyze current cluster state
-"Check the SNAT/LRP rule consistency on worker-0"
-
-# Example: Get performance insights
-"What are the current EgressIP performance trends?"
-```
-
-## Available MCP Tools
-
-### 🔧 **Testing Tools**
-
-#### `run_cornet_6498_test`
-Execute the CORENET-6498 large-scale EgressIP stress test.
-
-**Parameters:**
-- `eip_object_count` (int): Number of EgressIP objects (default: 10)
-- `pods_per_eip` (int): Pods per EgressIP object (default: 200)
-- `iterations` (int): Test iterations per scenario (default: 20)
-- `ip_stack` (str): IP stack type - auto/ipv4/ipv6/dualstack
-- `platform` (str): Platform type - auto/aws/gcp/azure/etc.
-
-**Example:**
-```json
-{
-  "eip_object_count": 5,
-  "pods_per_eip": 100,
-  "iterations": 10,
-  "ip_stack": "ipv4",
-  "platform": "aws"
-}
-```
-
-### 🔍 **Analysis Tools**
-
-#### `validate_snat_lrp_rules`
-Validate SNAT/LRP rules consistency on a specific node.
-
-**Parameters:**
-- `node_name` (str): OpenShift node name to analyze
-
-#### `analyze_egressip_performance`
-Analyze EgressIP performance metrics and identify bottlenecks.
-
-**Parameters:**
-- `namespace` (str, optional): Specific namespace to analyze
-
-#### `get_egressip_status`
-Get comprehensive status of all EgressIP objects in the cluster.
-
-#### `monitor_ovn_rules`
-Monitor SNAT/LRP rule changes over time on a specific node.
-
-**Parameters:**
-- `node_name` (str): Node name to monitor
-- `duration_minutes` (int): Monitoring duration (default: 5)
+- **Deep Dive Analysis**: Comprehensive performance pattern analysis
+- **Predictive Insights**: Trend-based performance predictions
 
 ## Configuration
 
-The server behavior can be customized through `config/egress_config.yaml`:
+The EgressIP analyzer uses the centralized configuration approach:
 
-### Test Configuration
+**Location**: `config/config-egress.yml`
+
+Key configuration sections:
 ```yaml
+# Test Configuration
 test_config:
   cornet_6498:
     default_eip_objects: 10
     default_pods_per_eip: 200
     default_iterations: 20
-    default_timeout_minutes: 360
-```
 
-### Performance Thresholds
-```yaml
+# Performance Thresholds
 performance_thresholds:
   rule_validation:
     max_snat_rules_per_node: 10000
     rule_consistency_min_score: 0.8
-```
 
-### Metrics Collection
-```yaml
+# Metrics Collection
 metrics:
   collection_schedule:
     egressip_metrics_interval_minutes: 15
     ovn_rules_interval_minutes: 30
 ```
 
-## Test Scenarios
+## MCP Tools
 
-### CORENET-6498 Test Scenarios
+The server provides 5 specialized MCP tools:
 
-1. **Node Reboot Scenario**
-   - Setup: Multiple EgressIP objects with large pod counts
-   - Action: Reboot EgressIP nodes
-   - Validation: SNAT/LRP rule consistency
+1. **`run_cornet_6498_test`**: Execute CORNET-6498 large-scale EgressIP stress test
+2. **`validate_snat_lrp_rules`**: Validate SNAT/LRP rules consistency on specific nodes  
+3. **`analyze_egressip_performance`**: Analyze EgressIP performance and identify bottlenecks
+4. **`get_egressip_status`**: Get comprehensive EgressIP status across the cluster
+5. **`monitor_ovn_rules`**: Monitor OVN rule changes over time for stability analysis
 
-2. **OVN Pod Restart Scenario**
-   - Setup: Large-scale pod deployments
-   - Action: Kill and restart OVN pods
-   - Validation: Rule recreation and consistency
+## Quick Start
 
-3. **Concurrent Operations Scenario**
-   - Setup: Active EgressIP configurations
-   - Action: Node operations + pod scaling
-   - Validation: Rule stability under load
+### Prerequisites
+- OpenShift cluster with OVN-Kubernetes networking
+- Python 3.8+
+- Go 1.19+ (for test execution)
+- `oc` CLI tool configured
 
-4. **Stress Testing Scenario**
-   - Setup: Maximum supported scale
-   - Action: Combined stress operations
-   - Validation: System limits and recovery
+### Installation
 
-## Metrics and Analysis
+1. **Start the MCP server**:
+   ```bash
+   cd mcp/egress
+   python egress_analyzer_mcp_server.py
+   ```
 
-### Collected Metrics
+2. **Configuration** (optional):
+   - Edit `config/config-egress.yml` for custom settings
+   - Adjust test parameters and thresholds as needed
 
-- **EgressIP Status**: Object state, assignments, pod counts
-- **OVN Rules**: SNAT/LRP rule counts, consistency scores
-- **Performance Tests**: Execution times, pass rates, scenarios
-- **Cluster Metrics**: Node counts, resource utilization
+### Usage Examples
 
-### Trend Analysis
-
-The system automatically analyzes trends in:
-- EgressIP object growth over time
-- Rule consistency scores
-- Test performance metrics
-- Cluster resource usage
-
-### Performance Insights
-
-AI-powered analysis provides:
-- Bottleneck identification
-- Optimization recommendations
-- Predictive scaling advice
-- Root cause analysis
-
-## Integration Examples
-
-### With Prometheus/Grafana
+#### Natural Language Queries (via AI agents)
 ```bash
-# Export metrics for Prometheus scraping
-curl -s http://localhost:8080/metrics | grep egressip
+"Run a CORNET-6498 test with 5 EgressIP objects and 100 pods each"
+"Check if SNAT rules are consistent on worker-0"  
+"Show me EgressIP performance trends from the last week"
+"What's the current status of all EgressIP objects?"
 ```
 
-### With CI/CD Pipelines
-```yaml
-# Example Jenkins pipeline step
-steps:
-  - name: "EgressIP Performance Test"
-    script: |
-      python -c "
-      import asyncio
-      from egress_analyzer import run_cornet_6498_test
-      result = asyncio.run(run_cornet_6498_test(
-        eip_object_count=3,
-        pods_per_eip=50,
-        iterations=5
-      ))
-      exit(0 if result['status'] == 'success' else 1)
-      "
-```
-
-### With AI Assistants
+#### Programmatic Usage
 ```python
-# Natural language queries via MCP protocol
-"How many SNAT rules are currently configured on worker-1?"
-"Run a small-scale EgressIP test to verify the cluster is healthy"
-"Show me the EgressIP performance trends from the last week"
+# Execute large-scale EgressIP test
+result = await run_cornet_6498_test(
+    eip_object_count=10,
+    pods_per_eip=200,
+    iterations=20,
+    ip_stack="ipv4"
+)
+
+# Validate OVN rules
+validation = await validate_snat_lrp_rules("worker-0")
+
+# Analyze performance
+analysis = await analyze_egressip_performance("test-namespace")
 ```
 
-## Troubleshooting
+## Integration with Existing Go Tests
 
-### Common Issues
+The implementation provides seamless integration with existing Go test infrastructure:
 
-1. **Test Execution Failures**
-   ```bash
-   # Check cluster prerequisites
-   python tools/validate_cluster.py
-   
-   # Verify Go test environment
-   cd /home/sninganu/egress && go mod tidy
-   ```
+- **Preserves Existing Logic**: Original `corenet_6498_test.go` runs unchanged
+- **Python Bridge**: Wrapper for Go test execution and result parsing in `tools/egressip/corenet_6498_runner.py`
+- **Enhanced Analysis**: Advanced metrics collection via `analysis/egress/egress_analyzer_performance_deepdrive.py`
+- **Data Processing**: ELT pipeline in `elt/egress/egress_analyzer_elt_processor.py`
 
-2. **OVN Rule Analysis Issues**
-   ```bash
-   # Test OVN connectivity
-   oc debug node/worker-0 -- chroot /host ovn-nbctl show
-   
-   # Check node accessibility
-   oc get nodes -l k8s.ovn.org/egress-assignable=true
-   ```
+## Data Flow
 
-3. **Metrics Collection Problems**
-   ```bash
-   # Verify database initialization
-   python -c "from tools.metrics_collector import EgressIPMetricsCollector; EgressIPMetricsCollector()"
-   
-   # Check cluster permissions
-   oc auth can-i get egressips --all-namespaces
-   ```
-
-### Debug Mode
-
-Enable debug logging:
-```yaml
-# In config/egress_config.yaml
-development:
-  debug_mode: true
-  verbose_logging: true
+```
+Go Tests → tools/egressip → elt/egress → analysis/egress → mcp/egress → AI Agents
+    ↓           ↓              ↓             ↓              ↓
+Raw Results  Extract    Transform     Analyze      MCP Tools    Natural Language
 ```
 
-## Performance Recommendations
+## Component Details
 
-### Optimal Test Configuration
+### **Analysis Component** (`analysis/egress/`)
+- Deep dive performance analysis
+- Bottleneck identification
+- Performance pattern recognition
+- Optimization recommendations
 
-For **production clusters**:
-```yaml
-test_config:
-  eip_object_count: 5-10
-  pods_per_eip: 50-100
-  iterations: 10-20
-```
+### **ELT Component** (`elt/egress/`)
+- Data extraction from multiple sources
+- Structured transformation for analysis
+- Persistent loading into SQLite storage
+- Historical data management
 
-For **development clusters**:
-```yaml
-test_config:
-  eip_object_count: 2-5
-  pods_per_eip: 20-50
-  iterations: 5-10
-```
+### **Tools Component** (`tools/egressip/`)
+- CORNET-6498 test runner and integration
+- OVN rule analyzer with consistency checking
+- Comprehensive metrics collection
+- Cluster resource monitoring
 
-### Resource Requirements
+### **MCP Server** (`mcp/egress/`)
+- FastMCP-based server implementation
+- 5 specialized tools for EgressIP analysis
+- Configuration-driven behavior
+- AI agent integration
 
-- **Minimum**: 3 worker nodes, 16GB RAM, 8 CPU cores
-- **Recommended**: 6+ worker nodes, 64GB+ RAM, 24+ CPU cores
-- **Large Scale**: 10+ worker nodes, 128GB+ RAM, 48+ CPU cores
+## Testing and Validation
+
+- **Unit Tests**: Core functionality validation
+- **Integration Tests**: End-to-end test execution
+- **MCP Protocol Tests**: Tool interface validation
+- **Performance Tests**: Large-scale scenario validation
+
+## Dependencies
+
+- Python 3.8+ with FastMCP framework
+- OpenShift/Kubernetes cluster with OVN-Kubernetes
+- Go 1.19+ and Ginkgo (for test execution)
+- SQLite for data storage
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Add comprehensive tests
-4. Update documentation
-5. Submit a pull request
-
-### Development Setup
-```bash
-# Install development dependencies
-pip install -r requirements-dev.txt
-
-# Run tests
-pytest tests/
-
-# Code formatting
-black .
-isort .
-```
-
-## License
-
-Apache-2.0 - See [LICENSE](LICENSE) file for details.
-
-## Support
-
-For issues and support:
-- Create GitHub issues for bugs and feature requests
-- Join OpenShift performance scale team discussions
-- Review existing documentation and examples
-
-## Related Projects
-
-- [OpenShift OVN-Kubernetes](https://github.com/ovn-org/ovn-kubernetes)
-- [OpenShift Performance Scale](https://github.com/openshift-scale)
-- [Model Context Protocol](https://github.com/modelcontextprotocol)
+Follow the established repository patterns:
+- Use the modular structure (`analysis/`, `elt/`, `tools/`, `mcp/`)
+- Place configurations in the central `config/` directory
+- Follow naming conventions: `*_analyzer_*` for components
+- Maintain separation of concerns between components
 
 ---
 
-Built with ❤️ by the OpenShift Performance Scale Team
+**Tested on**: OpenShift 4.16.8 with OVN-Kubernetes  
+**Compatible with**: AWS, GCP, Azure, OpenStack, vSphere, Bare Metal platforms  
+**AI Agents**: Claude, and other MCP-compatible agents
