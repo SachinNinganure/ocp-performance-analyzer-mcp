@@ -1,0 +1,58 @@
+# EgressIP Performance Analyzer MCP Server Requirements
+
+# Core MCP Framework
+fastmcp>=0.3.0
+
+# Async Programming
+asyncio-throttle>=1.0.2
+aiofiles>=23.0.0
+
+# Data Processing and Analysis
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Database and Storage
+sqlite3
+duckdb>=0.9.0
+
+# HTTP and API
+aiohttp>=3.8.0
+fastapi>=0.104.0
+uvicorn>=0.24.0
+
+# YAML Configuration
+PyYAML>=6.0
+
+# Logging and Monitoring
+structlog>=23.0.0
+psutil>=5.9.0
+
+# Testing Framework Integration
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+
+# Date and Time Handling
+python-dateutil>=2.8.0
+
+# Kubernetes/OpenShift Integration
+kubernetes>=28.0.0
+openshift>=0.13.0
+
+# JSON Processing
+ujson>=5.8.0
+
+# Optional: AI/ML Libraries (for advanced analysis)
+scikit-learn>=1.3.0
+
+# Development Dependencies (optional)
+black>=23.0.0
+isort>=5.12.0
+flake8>=6.0.0
+mypy>=1.5.0
+
+# Documentation
+sphinx>=7.0.0
+sphinx-rtd-theme>=1.3.0
+
+# Performance Monitoring
+prometheus-client>=0.17.0
