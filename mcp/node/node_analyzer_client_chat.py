@@ -104,7 +104,13 @@ class MCPTool(BaseTool):
             wrapped_params = {"request": params} if params else {}
 
             result = await self.mcp_client.call_tool(self.name, wrapped_params)
-            return json.dumps(result, indent=2)
+
+            # If result is already a string (HTML or formatted text), return directly
+            # Otherwise, JSON dump it for proper serialization
+            if isinstance(result, str):
+                return result
+            else:
+                return json.dumps(result, indent=2)
         except Exception as e:
             logger.error(f"Error calling MCP tool {self.name}: {e}")
             return f"Error: {str(e)}"
