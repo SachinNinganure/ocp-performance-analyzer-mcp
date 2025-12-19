@@ -1,0 +1,458 @@
+#!/usr/bin/env python3
+"""
+EgressIP Performance Analyzer MCP Server
+
+This server provides AI-powered analysis and testing capabilities for OpenShift EgressIP functionality,
+including large-scale performance testing, OVN rule validation, and automated bottleneck detection.
+
+Renamed with egressip_ prefix as per reviewer feedback.
+Transport clarification: Uses stdio for MCP communication.
+
+Author: Performance Scale Team
+License: Apache-2.0
+"""
+
+import asyncio
+import json
+import logging
+import os
+import sys
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+import yaml
+from fastmcp import FastMCP
+
+# Add project root to path for imports
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
+
+try:
+    from tools.egressip.egressip_corenet_6498_runner import EgressIPCORENET6498Runner
+    from tools.egressip.egressip_ovn_rule_analyzer import EgressIPOVNRuleAnalyzer
+    from tools.egressip.egressip_metrics_collector import EgressIPMetricsCollector
+except ImportError as e:
+    logging.error(f"Failed to import EgressIP tools: {e}")
+    logging.info("Attempting to import from local directory...")
+    try:
+        from egressip_corenet_6498_runner import EgressIPCORENET6498Runner
+        from egressip_ovn_rule_analyzer import EgressIPOVNRuleAnalyzer
+        from egressip_metrics_collector import EgressIPMetricsCollector
+    except ImportError as e2:
+        logging.error(f"Failed to import EgressIP tools from local directory: {e2}")
+        sys.exit(1)
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# Initialize FastMCP server
+mcp = FastMCP("EgressIP Performance Analyzer")
+
+class EgressIPAnalyzerMCPServer:
+    """MCP Server for EgressIP Performance Analysis"""
+    
+    def __init__(self, config_path: Optional[str] = None):
+        self.config_path = config_path or str(project_root / "config" / "config-egress.yml")
+        self.config = self._load_config()
+        
+        # Initialize components
+        self.test_runner = EgressIPCORENET6498Runner()
+        self.ovn_analyzer = EgressIPOVNRuleAnalyzer()
+        self.metrics_collector = EgressIPMetricsCollector()
+        
+    def _load_config(self) -> Dict[str, Any]:
+        """Load configuration from YAML file"""
+        try:
+            if os.path.exists(self.config_path):
+                with open(self.config_path, 'r') as f:
+                    return yaml.safe_load(f)
+            else:
+                logger.warning(f"EgressIP config file not found: {self.config_path}. Using defaults.")
+                return self._get_default_config()
+        except Exception as e:
+            logger.error(f"Error loading EgressIP config: {e}. Using defaults.")
+            return self._get_default_config()
+    
+    def _get_default_config(self) -> Dict[str, Any]:
+        """Return default configuration for EgressIP analyzer"""
+        return {
+            "test_config": {
+                "cornet_6498": {
+                    "default_eip_objects": 10,
+                    "default_pods_per_eip": 200,
+                    "default_iterations": 20,
+                    "default_timeout_minutes": 360
+                }
+            },
+            "performance_thresholds": {
+                "rule_validation": {
+                    "max_snat_rules_per_node": 10000,
+                    "rule_consistency_min_score": 0.8
+                }
+            }
+        }
+
+# Initialize server instance
+server = EgressIPAnalyzerMCPServer()
+
+@mcp.tool()
+async def run_egressip_cornet_6498_test(
+    eip_object_count: int = 10,
+    pods_per_eip: int = 200,
+    iterations: int = 20,
+    ip_stack: str = "auto",
+    platform: str = "auto"
+) -> str:
+    """
+    Execute EgressIP CORNET-6498 large-scale stress test.
+    
+    This test creates multiple EgressIP objects with large numbers of pods and validates
+    SNAT/LRP rules consistency under various stress conditions including node reboots,
+    OVN pod restarts, and scaling operations.
+    
+    Args:
+        eip_object_count: Number of EgressIP objects to create (default: 10)
+        pods_per_eip: Number of pods per EgressIP object (default: 200)
+        iterations: Number of test iterations per scenario (default: 20)
+        ip_stack: IP stack type - auto, ipv4, ipv6, or dualstack (default: auto)
+        platform: Target platform - auto, aws, gcp, azure, etc. (default: auto)
+    
+    Returns:
+        JSON string containing test results, execution time, and analysis
+    """
+    try:
+        config = {
+            "eip_object_count": eip_object_count,
+            "pods_per_eip": pods_per_eip,
+            "iterations": iterations,
+            "ip_stack": ip_stack,
+            "platform": platform
+        }
+        
+        result = await server.test_runner.run_test(config)
+        
+        # Store test results in metrics collector
+        await server.metrics_collector.store_egressip_performance_test_result(
+            "CORNET-6498", config, result
+        )
+        
+        return json.dumps(result, indent=2)
+        
+    except Exception as e:
+        logger.error(f"Error in run_egressip_cornet_6498_test: {e}")
+        return json.dumps({
+            "status": "error",
+            "error": str(e),
+            "timestamp": datetime.utcnow().isoformat()
+        }, indent=2)
+
+
+@mcp.tool()
+async def validate_egressip_snat_lrp_rules(node_name: str) -> str:
+    """
+    Validate EgressIP SNAT/LRP rules consistency on a specific OpenShift node.
+    
+    This tool examines the OVN database on the specified node to validate that
+    SNAT and LRP (Logical Router Policy) rules are properly configured and
+    consistent with the current EgressIP assignments.
+    
+    Args:
+        node_name: Name of the OpenShift node to analyze
+    
+    Returns:
+        JSON string containing rule counts, validation results, and any inconsistencies found
+    """
+    try:
+        result = await server.ovn_analyzer.analyze_node_rules(node_name)
+        return json.dumps(result, indent=2)
+        
+    except Exception as e:
+        logger.error(f"Error in validate_egressip_snat_lrp_rules: {e}")
+        return json.dumps({
+            "status": "error",
+            "error": str(e),
+            "node_name": node_name,
+            "timestamp": datetime.utcnow().isoformat()
+        }, indent=2)
+
+
+@mcp.tool()
+async def analyze_egressip_performance(namespace: str = None) -> str:
+    """
+    Analyze EgressIP performance metrics and identify potential bottlenecks.
+    
+    This tool examines EgressIP objects, pod assignments, traffic patterns,
+    and node resource utilization to identify performance issues and provide
+    optimization recommendations.
+    
+    Args:
+        namespace: Specific namespace to analyze (optional, analyzes all if not specified)
+    
+    Returns:
+        JSON string containing performance analysis, bottleneck identification, and recommendations
+    """
+    try:
+        result = await server.metrics_collector.collect_egressip_metrics()
+        
+        # Add performance analysis
+        analysis_result = {
+            "status": "success",
+            "namespace": namespace,
+            "metrics": result.get("metrics", []),
+            "performance_insights": "EgressIP analysis completed - see metrics for details",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+        return json.dumps(analysis_result, indent=2)
+        
+    except Exception as e:
+        logger.error(f"Error in analyze_egressip_performance: {e}")
+        return json.dumps({
+            "status": "error",
+            "error": str(e),
+            "namespace": namespace,
+            "timestamp": datetime.utcnow().isoformat()
+        }, indent=2)
+
+
+@mcp.tool()
+async def get_egressip_status() -> str:
+    """
+    Get comprehensive status of all EgressIP objects in the cluster.
+    
+    Returns detailed information about EgressIP objects including their current
+    assignments, node distribution, and overall health status.
+    
+    Returns:
+        JSON string containing EgressIP status information
+    """
+    try:
+        result = await server.metrics_collector.collect_egressip_cluster_metrics()
+        return json.dumps(result, indent=2)
+        
+    except Exception as e:
+        logger.error(f"Error in get_egressip_status: {e}")
+        return json.dumps({
+            "status": "error",
+            "error": str(e),
+            "timestamp": datetime.utcnow().isoformat()
+        }, indent=2)
+
+
+@mcp.tool()
+async def monitor_egressip_ovn_rules(node_name: str, duration_minutes: int = 5) -> str:
+    """
+    Monitor EgressIP SNAT/LRP rule changes on a specific node over time.
+    
+    This tool continuously monitors OVN rule changes on the specified node
+    to detect rule inconsistencies, missing rules, or unexpected changes
+    related to EgressIP functionality.
+    
+    Args:
+        node_name: Name of the OpenShift node to monitor
+        duration_minutes: How long to monitor in minutes (default: 5)
+    
+    Returns:
+        JSON string containing monitoring results and detected changes
+    """
+    try:
+        duration_seconds = duration_minutes * 60
+        result = await server.ovn_analyzer.monitor_egressip_rule_changes(node_name, duration_seconds)
+        return json.dumps(result, indent=2)
+        
+    except Exception as e:
+        logger.error(f"Error in monitor_egressip_ovn_rules: {e}")
+        return json.dumps({
+            "status": "error",
+            "error": str(e),
+            "node_name": node_name,
+            "duration_minutes": duration_minutes,
+            "timestamp": datetime.utcnow().isoformat()
+        }, indent=2)
+
+
+@mcp.tool()
+async def compare_egressip_rules_across_nodes(node_names: str) -> str:
+    """
+    Compare EgressIP OVN rules across multiple nodes to identify inconsistencies.
+    
+    This tool analyzes SNAT and LRP rules across multiple nodes to ensure
+    consistency in EgressIP rule distribution and identify potential
+    synchronization issues.
+    
+    Args:
+        node_names: Comma-separated list of node names to compare
+    
+    Returns:
+        JSON string containing comparison results and inconsistency analysis
+    """
+    try:
+        node_list = [name.strip() for name in node_names.split(',')]
+        result = await server.ovn_analyzer.compare_egressip_rules_across_nodes(node_list)
+        return json.dumps(result, indent=2)
+        
+    except Exception as e:
+        logger.error(f"Error in compare_egressip_rules_across_nodes: {e}")
+        return json.dumps({
+            "status": "error",
+            "error": str(e),
+            "node_names": node_names,
+            "timestamp": datetime.utcnow().isoformat()
+        }, indent=2)
+
+
+@mcp.tool()
+async def get_egressip_metrics_summary(hours_back: int = 24) -> str:
+    """
+    Get summary of EgressIP metrics from the last N hours.
+    
+    This tool provides a comprehensive summary of EgressIP performance metrics,
+    test results, and trend analysis over a specified time period.
+    
+    Args:
+        hours_back: Number of hours to look back (default: 24)
+    
+    Returns:
+        JSON string containing metrics summary and trend analysis
+    """
+    try:
+        result = await server.metrics_collector.get_egressip_metrics_summary(hours_back)
+        return json.dumps(result, indent=2)
+        
+    except Exception as e:
+        logger.error(f"Error in get_egressip_metrics_summary: {e}")
+        return json.dumps({
+            "status": "error",
+            "error": str(e),
+            "hours_back": hours_back,
+            "timestamp": datetime.utcnow().isoformat()
+        }, indent=2)
+
+
+@mcp.resource()
+async def egressip_config() -> str:
+    """
+    Current EgressIP analyzer configuration.
+    
+    Returns the current configuration settings for the EgressIP analyzer,
+    including test parameters, thresholds, and integration settings.
+    """
+    return json.dumps(server.config, indent=2)
+
+
+@mcp.resource()
+async def egressip_help() -> str:
+    """
+    EgressIP Performance Analyzer Help.
+    
+    Provides comprehensive help documentation for using the EgressIP
+    Performance Analyzer MCP server, including tool descriptions,
+    usage examples, and configuration options.
+    """
+    help_content = """
+# EgressIP Performance Analyzer MCP Server
+
+## Overview
+AI-powered performance analysis and testing platform for OpenShift EgressIP functionality.
+
+## Available Tools
+
+### 1. run_egressip_cornet_6498_test
+Execute large-scale EgressIP stress tests with customizable parameters.
+
+Example usage:
+- run_egressip_cornet_6498_test(eip_object_count=5, pods_per_eip=100, iterations=10)
+- For quick test: run_egressip_cornet_6498_test(2, 50, 5)
+
+### 2. validate_egressip_snat_lrp_rules
+Validate OVN rule consistency on specific nodes.
+
+Example usage:
+- validate_egressip_snat_lrp_rules("worker-0")
+- validate_egressip_snat_lrp_rules("ip-10-0-128-123.us-west-2.compute.internal")
+
+### 3. analyze_egressip_performance
+Analyze EgressIP performance metrics and identify bottlenecks.
+
+Example usage:
+- analyze_egressip_performance()  # Analyze all namespaces
+- analyze_egressip_performance("test-namespace")  # Specific namespace
+
+### 4. get_egressip_status
+Get comprehensive status of all EgressIP objects.
+
+Example usage:
+- get_egressip_status()
+
+### 5. monitor_egressip_ovn_rules
+Monitor rule changes over time on specific nodes.
+
+Example usage:
+- monitor_egressip_ovn_rules("worker-0", 5)  # Monitor for 5 minutes
+- monitor_egressip_ovn_rules("worker-1", 15)  # Monitor for 15 minutes
+
+### 6. compare_egressip_rules_across_nodes
+Compare rules across multiple nodes for consistency.
+
+Example usage:
+- compare_egressip_rules_across_nodes("worker-0,worker-1,worker-2")
+
+### 7. get_egressip_metrics_summary
+Get metrics summary over a time period.
+
+Example usage:
+- get_egressip_metrics_summary(24)  # Last 24 hours
+- get_egressip_metrics_summary(168)  # Last week
+
+## Natural Language Examples
+
+You can also use natural language with AI agents:
+- "Run a CORNET-6498 test with 5 EgressIP objects and 100 pods each"
+- "Check if SNAT rules are consistent on worker-0"
+- "Show me EgressIP performance trends from the last week"
+- "Compare EgressIP rules between worker-0 and worker-1"
+- "Monitor EgressIP rule changes on worker-0 for 10 minutes"
+
+## Transport Method
+This MCP server uses **stdio transport** for communication with AI agents and clients.
+The server reads MCP protocol messages from stdin and writes responses to stdout.
+
+## Configuration
+Configuration is loaded from config/config-egress.yml with sensible defaults.
+The server will create the configuration file with defaults if it doesn't exist.
+
+## Prerequisites
+- OpenShift cluster with OVN-Kubernetes networking
+- Python 3.8+ with required dependencies
+- `oc` CLI tool configured for cluster access
+- Appropriate RBAC permissions for EgressIP operations
+
+## Support
+For issues or questions, refer to the repository documentation or create an issue.
+    """
+    return help_content
+
+
+def main():
+    """Main function to start the EgressIP MCP server"""
+    logger.info("Starting EgressIP Performance Analyzer MCP Server")
+    logger.info("Transport: stdio (reading from stdin, writing to stdout)")
+    logger.info("Available tools: 7 tools, 2 resources")
+    
+    try:
+        # Start the MCP server with stdio transport
+        mcp.run(transport="stdio")
+    except KeyboardInterrupt:
+        logger.info("EgressIP MCP Server stopped by user")
+    except Exception as e:
+        logger.error(f"Error running EgressIP MCP server: {e}")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

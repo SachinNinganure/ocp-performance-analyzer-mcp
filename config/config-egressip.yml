@@ -1,0 +1,277 @@
+# EgressIP Performance Analyzer MCP Configuration
+# Located in: config/config-egressip.yml
+# Following unified naming convention: egressip_ prefix to avoid confusion with EgressFirewall
+# Addressing reviewer feedback: proper config folder organization
+
+# EgressIP Test Configuration
+egressip_test_config:
+  # CORNET-6498 EgressIP Test Defaults
+  egressip_cornet_6498:
+    egressip_default_object_count: 10
+    egressip_default_pods_per_object: 200
+    egressip_default_iterations: 20
+    egressip_default_timeout_minutes: 360
+    egressip_supported_platforms:
+      - "aws"
+      - "gcp" 
+      - "azure"
+      - "openstack"
+      - "vsphere"
+      - "baremetal"
+      - "nutanix"
+      - "powervs"
+    egressip_supported_ip_stacks:
+      - "ipv4single"
+      - "ipv6single"
+      - "dualstack"
+    
+  # EgressIP Resource Limits
+  egressip_resource_limits:
+    egressip_max_objects: 50
+    egressip_max_pods_per_object: 1000
+    egressip_max_iterations: 100
+    egressip_max_test_duration_hours: 12
+    
+  # EgressIP Validation Settings
+  egressip_validation:
+    egressip_min_worker_nodes: 3
+    egressip_required_network_type: "OVNKubernetes"
+    egressip_check_cluster_resources: true
+    egressip_skip_on_special_clusters: true
+    egressip_required_crd: "egressips.k8s.ovn.org"
+    egressip_min_assignable_nodes: 1
+
+# EgressIP OVN Analysis Configuration
+egressip_ovn_analysis:
+  # EgressIP Rule Collection Settings
+  egressip_collection:
+    egressip_timeout_seconds: 60
+    egressip_retry_attempts: 3
+    egressip_retry_delay_seconds: 5
+    egressip_debug_commands: false
+    
+  # EgressIP Monitoring Settings
+  egressip_monitoring:
+    egressip_default_duration_seconds: 300
+    egressip_check_interval_seconds: 30
+    egressip_max_snapshots: 1000
+    egressip_enable_change_detection: true
+    
+  # EgressIP Consistency Thresholds
+  egressip_thresholds:
+    egressip_consistency_score_warning: 0.5
+    egressip_consistency_score_critical: 0.3
+    egressip_max_parsing_errors: 10
+    egressip_max_missing_rules: 5
+    egressip_snat_lrp_correlation_min: 0.8
+
+# EgressIP Metrics Collection Configuration
+egressip_metrics:
+  # EgressIP Database Settings
+  egressip_database:
+    egressip_path: "./storage/egressip_metrics.db"
+    egressip_backup_enabled: true
+    egressip_backup_interval_hours: 24
+    egressip_retention_days: 30
+    egressip_compression_enabled: true
+    
+  # EgressIP Collection Schedule
+  egressip_collection_schedule:
+    egressip_status_metrics_interval_minutes: 15
+    egressip_ovn_rules_interval_minutes: 30
+    egressip_cluster_metrics_interval_minutes: 60
+    egressip_network_metrics_interval_minutes: 10
+    egressip_performance_tests_on_demand: true
+    
+  # EgressIP Trend Analysis
+  egressip_trend_analysis:
+    egressip_default_lookback_days: 7
+    egressip_trend_threshold_percent: 10
+    egressip_min_data_points: 5
+    egressip_confidence_score_threshold: 0.8
+
+# EgressIP Performance Thresholds
+egressip_performance_thresholds:
+  # EgressIP Test Execution Times
+  egressip_test_execution:
+    egressip_cornet_6498_max_hours: 6
+    egressip_scenario_max_minutes: 60
+    egressip_node_reboot_max_minutes: 10
+    egressip_scaling_max_minutes: 30
+    
+  # EgressIP Rule Validation
+  egressip_rule_validation:
+    egressip_max_snat_rules_per_node: 10000
+    egressip_max_lrp_rules_per_node: 50000
+    egressip_rule_consistency_min_score: 0.8
+    egressip_orphaned_rules_max_count: 10
+    
+  # EgressIP Cluster Resources
+  egressip_cluster_resources:
+    egressip_min_available_memory_gb: 64
+    egressip_min_available_cpu_cores: 16
+    egressip_max_cluster_utilization_percent: 80
+    egressip_min_assignable_ips: 10
+    
+  # EgressIP Performance Metrics
+  egressip_performance_metrics:
+    egressip_ovn_controller_max_memory_mb: 2048
+    egressip_ovn_controller_max_cpu_percent: 80
+    egressip_network_error_rate_threshold: 0.01
+    egressip_rule_processing_max_seconds: 10
+
+# EgressIP Error Handling and Retry Configuration
+egressip_error_handling:
+  # EgressIP Retry Settings
+  egressip_retry:
+    egressip_max_attempts: 3
+    egressip_exponential_backoff: true
+    egressip_base_delay_seconds: 2
+    egressip_max_delay_seconds: 60
+    
+  # EgressIP Timeout Settings
+  egressip_timeouts:
+    egressip_oc_command_seconds: 120
+    egressip_ovn_command_seconds: 60
+    egressip_cluster_operation_seconds: 300
+    egressip_prometheus_query_seconds: 30
+    
+  # EgressIP Failure Handling
+  egressip_failure_handling:
+    egressip_continue_on_non_critical_errors: true
+    egressip_stop_on_cluster_instability: true
+    egressip_cleanup_on_failure: true
+    egressip_preserve_debug_artifacts: false
+
+# EgressIP Integration Settings
+egressip_integration:
+  # EgressIP External Tools
+  egressip_tools:
+    egressip_oc_path: "oc"
+    egressip_ginkgo_path: "ginkgo"
+    egressip_go_path: "go"
+    egressip_ovn_nbctl_path: "ovn-nbctl"
+    
+  # EgressIP Cluster Access
+  egressip_cluster:
+    egressip_kubeconfig_env_var: "KUBECONFIG"
+    egressip_verify_cluster_access: true
+    egressip_required_permissions:
+      - "nodes:list"
+      - "egressips:list,create,delete,watch"
+      - "pods:list,create,delete"
+      - "namespaces:create,delete"
+      - "network.operator.openshift.io:get"
+    
+  # EgressIP Test Environment
+  egressip_test_environment:
+    egressip_base_test_dir: "/home/sninganu/egress"
+    egressip_temp_dir_prefix: "egressip_test_"
+    egressip_cleanup_temp_dirs: true
+    egressip_preserve_failed_test_artifacts: true
+    
+  # EgressIP MCP Server Settings
+  egressip_mcp_server:
+    egressip_server_name: "egressip-analyzer"
+    egressip_server_version: "1.0.0"
+    egressip_transport_type: "stdio"
+    egressip_enable_logging: true
+    egressip_log_level: "INFO"
+    egressip_tools_available:
+      - "egressip_cornet_6498_runner"
+      - "egressip_metrics_collector" 
+      - "egressip_ovn_rule_analyzer"
+      - "egressip_cluster_validator"
+      - "egressip_performance_monitor"
+
+# EgressIP Prometheus Integration
+egressip_prometheus:
+  # EgressIP Prometheus Settings
+  egressip_prometheus_config:
+    egressip_enable_metrics_collection: true
+    egressip_query_timeout_seconds: 30
+    egressip_retry_failed_queries: true
+    egressip_cache_query_results: false
+    
+  # EgressIP Specific Metrics
+  egressip_metrics_queries:
+    egressip_ovn_controller_memory: 'process_resident_memory_bytes{job="ovn-controller"}'
+    egressip_ovn_controller_cpu: 'rate(process_cpu_seconds_total{job="ovn-controller"}[5m])'
+    egressip_network_transmit_rate: 'rate(node_network_transmit_bytes_total[5m])'
+    egressip_network_receive_rate: 'rate(node_network_receive_bytes_total[5m])'
+    egressip_ovn_nb_raft_entries: 'ovn_nb_raft_entries_total'
+    egressip_ovn_sb_raft_entries: 'ovn_sb_raft_entries_total'
+    egressip_logical_router_policies: 'ovn_nb_logical_router_policy_total'
+    egressip_nat_rules: 'ovn_nb_nat_total{type="snat"}'
+
+# EgressIP Reporting Configuration
+egressip_reporting:
+  # EgressIP Output Formats
+  egressip_formats:
+    egressip_json_enabled: true
+    egressip_text_enabled: true
+    egressip_html_enabled: false
+    egressip_csv_enabled: true
+    
+  # EgressIP Report Content
+  egressip_content:
+    egressip_include_raw_output: true
+    egressip_include_debug_info: false
+    egressip_max_raw_output_chars: 5000
+    egressip_include_performance_graphs: false
+    egressip_include_trend_analysis: true
+    
+  # EgressIP Storage
+  egressip_storage:
+    egressip_reports_directory: "./test_results/egressip_reports"
+    egressip_retain_reports_days: 30
+    egressip_compress_old_reports: true
+    egressip_reports_naming_pattern: "egressip_report_%Y%m%d_%H%M%S"
+
+# EgressIP Security Configuration
+egressip_security:
+  # EgressIP Data Protection
+  egressip_data_protection:
+    egressip_mask_sensitive_data: true
+    egressip_log_sanitization: true
+    egressip_redact_ip_addresses: false
+    egressip_secure_temp_files: true
+    
+  # EgressIP Access Control
+  egressip_access_control:
+    egressip_require_cluster_admin: false
+    egressip_allowed_namespaces: []  # Empty means all namespaces
+    egressip_forbidden_namespaces: ["kube-system", "openshift-*"]
+    egressip_validate_node_access: true
+
+# EgressIP Feature Flags
+egressip_feature_flags:
+  egressip_enable_ipv6_testing: true
+  egressip_enable_dual_stack_testing: true
+  egressip_enable_performance_monitoring: true
+  egressip_enable_trend_analysis: true
+  egressip_enable_automated_cleanup: true
+  egressip_enable_experimental_features: false
+  egressip_enable_cross_node_validation: true
+  egressip_enable_rule_stability_monitoring: true
+  egressip_enable_prometheus_correlation: true
+  egressip_enable_large_scale_testing: true
+
+# EgressIP Logging Configuration
+egressip_logging:
+  # EgressIP Log Settings
+  egressip_log_config:
+    egressip_log_level: "INFO"
+    egressip_log_format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    egressip_log_file_enabled: true
+    egressip_log_file_path: "./logs/egressip_analyzer.log"
+    egressip_log_rotation_enabled: true
+    egressip_log_max_size_mb: 100
+    egressip_log_backup_count: 5
+    
+  # EgressIP Debug Settings
+  egressip_debug:
+    egressip_debug_enabled: false
+    egressip_debug_preserve_artifacts: false
+    egressip_debug_verbose_oc_commands: false
+    egressip_debug_ovn_commands_output: false
