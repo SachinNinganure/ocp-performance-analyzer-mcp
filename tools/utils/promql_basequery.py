@@ -280,6 +280,19 @@ class PrometheusBaseQuery:
             end_dt.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
         )
 
+    async def query(self, query: str, time: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Alias for query_instant for backward compatibility
+        
+        Args:
+            query: PromQL query string
+            time: Optional timestamp (RFC3339 or Unix timestamp)
+
+        Returns:
+            Query result as dictionary
+        """
+        return await self.query_instant(query, time)
+
     async def test_connection(self) -> bool:
         """
         Test connection to Prometheus
