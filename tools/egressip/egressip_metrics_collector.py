@@ -32,12 +32,12 @@ logger = logging.getLogger(__name__)
 class EgressIPMetricsCollector:
     """Collector for EgressIP performance and operational metrics"""
     
-    def __init__(self, database_path: str = "./storage/egressip_metrics.db"):
+    def __init__(self, database_path: str = "./storage/egressip_metrics.db", prometheus_url: str = "http://localhost:9090"):
         self.database_path = Path(database_path)
         self.database_path.parent.mkdir(parents=True, exist_ok=True)
         
         # Initialize Prometheus utilities for EgressIP metrics
-        self.prometheus_query = PrometheusBaseQuery()
+        self.prometheus_query = PrometheusBaseQuery(prometheus_url)
         self.mcp_utility = mcpToolsUtility()
         
         self.init_database()
@@ -215,7 +215,7 @@ class EgressIPMetricsCollector:
             egressip_metrics = {}
             for name, query in egressip_network_queries.items():
                 try:
-                    result = await self.prometheus_query.query(query)
+                    result = await self.prometheus_query.query_instant(query)
                     parsed_result = self.mcp_utility.parse_prometheus_result(result)
                     egressip_metrics[name] = parsed_result
                 except Exception as e:
@@ -258,7 +258,7 @@ class EgressIPMetricsCollector:
             egressip_metrics = {}
             for name, query in egressip_prometheus_queries.items():
                 try:
-                    result = await self.prometheus_query.query(query)
+                    result = await self.prometheus_query.query_instant(query)
                     egressip_metrics[name] = self.mcp_utility.parse_prometheus_result(result)
                 except Exception as e:
                     logger.warning(f"Could not collect EgressIP Prometheus metric {name}: {e}")

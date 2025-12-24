@@ -32,13 +32,13 @@ logger = logging.getLogger(__name__)
 class EgressIPCORNET6498Runner:
     """Runner for CORNET-6498 EgressIP stress test"""
     
-    def __init__(self, test_base_dir: str = "/home/sninganu/egress"):
+    def __init__(self, test_base_dir: str = "/home/sninganu/egress", prometheus_url: str = "http://localhost:9090"):
         self.test_base_dir = Path(test_base_dir)
         self.results_dir = Path("./test_results/egressip_cornet_6498")
         self.results_dir.mkdir(parents=True, exist_ok=True)
         
         # Initialize Prometheus utilities
-        self.prometheus_query = PrometheusBaseQuery()
+        self.prometheus_query = PrometheusBaseQuery(prometheus_url)
         self.mcp_utility = mcpToolsUtility()
         
     async def run_test(self, config: Dict[str, Any]) -> Dict[str, Any]:

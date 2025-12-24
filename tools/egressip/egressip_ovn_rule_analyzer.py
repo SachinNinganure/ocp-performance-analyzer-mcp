@@ -20,13 +20,27 @@ logger = logging.getLogger(__name__)
 class EgressIPOVNRuleAnalyzer:
     """Analyzer for OVN SNAT and LRP rules related to EgressIP functionality"""
     
-    def __init__(self):
+    def __init__(self, prometheus_url: str = "http://localhost:9090"):
         self.rule_patterns = {
             'snat': re.compile(r'snat\s+(\S+)\s+(\S+)\s+(\S+)'),
             'dnat': re.compile(r'dnat\s+(\S+)\s+(\S+)\s+(\S+)'),
             'lrp': re.compile(r'(\d+)\s+(\S+)\s+(\d+)\s+(.+)'),
             'egressip': re.compile(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})')
         }
+        
+        # Initialize Prometheus utilities for correlation - lazy import to avoid issues
+        try:
+            import sys
+            import os
+            sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            from tools.utils.promql_basequery import PrometheusBaseQuery
+            from tools.utils.promql_utility import mcpToolsUtility
+            self.prometheus_query = PrometheusBaseQuery(prometheus_url)
+            self.mcp_utility = mcpToolsUtility()
+        except ImportError as e:
+            logger.warning(f"Could not initialize Prometheus utilities: {e}")
+            self.prometheus_query = None
+            self.mcp_utility = None
     
     async def analyze_node_rules(self, node_name: str) -> Dict[str, Any]:
         """Comprehensive analysis of OVN rules on a specific node"""
